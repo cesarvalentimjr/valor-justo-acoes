@@ -1,0 +1,6 @@
+streamlit
+yfinance
+yahooquery
+pandas
+numpy
+matplotlib
