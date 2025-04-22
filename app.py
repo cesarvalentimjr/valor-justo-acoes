@@ -25,8 +25,12 @@ with col_titulo:
 # === ESTILIZAÇÃO PERSONALIZADA ===
 st.markdown("""
     <style>
-        .main { background-color: #f5f7fa; }
-        h1, h2, h3 { color: #003366; }
+        .main {
+            background-color: #f5f7fa;
+        }
+        h1, h2, h3 {
+            color: #003366;
+        }
         .stButton>button {
             background-color: #004080;
             color: white;
@@ -43,8 +47,12 @@ st.markdown("""
             font-weight: 600;
             color: #003366;
         }
-        .stMarkdown { font-size: 1.1rem; }
-        .stSuccess { background-color: #dff0d8; }
+        .stMarkdown {
+            font-size: 1.1rem;
+        }
+        .stSuccess {
+            background-color: #dff0d8;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -99,7 +107,7 @@ if st.session_state.comparaveis:
     st.markdown(", ".join(st.session_state.comparaveis))
 
 # === CÁLCULO ===
-if st.button("🧮 Calcular Valor Justo"):
+if st.button("🧶 Calcular Valor Justo"):
     comparables = st.session_state.comparaveis
 
     if not ticker_target or not comparables:
@@ -114,11 +122,15 @@ if st.button("🧮 Calcular Valor Justo"):
                 ps_list.append(info.get("priceToSalesTrailing12Months"))
                 pb_list.append(info.get("priceToBook"))
 
-            pe_avg = np.nanmean([v for v in pe_list if v and v > 0])
+            # P/E somente se TODOS forem positivos
+            pe_validos = [v for v in pe_list if v is not None and v > 0]
+            todos_pe_positivos = len(pe_validos) == len(pe_list)
+            pe_avg = np.nanmean(pe_validos) if todos_pe_positivos else None
+
             ps_avg = np.nanmean([v for v in ps_list if v])
             pb_avg = np.nanmean([v for v in pb_list if v])
 
-            st.markdown(f"**📌 P/E médio (apenas positivos):** `{pe_avg:.2f}`")
+            st.markdown(f"**📌 P/E médio:** `{pe_avg:.2f}`" if pe_avg else "**📌 P/E médio:** Ignorado por condições não satisfeitas")
             st.markdown(f"**📌 P/S médio:** `{ps_avg:.2f}`")
             st.markdown(f"**📌 P/B médio:** `{pb_avg:.2f}`")
 
@@ -138,7 +150,7 @@ if st.button("🧮 Calcular Valor Justo"):
             equity = buscar(bs, ["Common Stock Equity", "Total Stockholder Equity", "Stockholders' Equity", "Total Equity", "Ordinary Shareholders Equity"])
             shares = info_target.get("sharesOutstanding")
 
-            st.write("### 📑 Dados encontrados:")
+            st.write("### 📁 Dados encontrados:")
             st.write(f"- Net Income: `{net_income}`")
             st.write(f"- Revenue: `{revenue}`")
             st.write(f"- Equity: `{equity}`")
@@ -155,39 +167,34 @@ if st.button("🧮 Calcular Valor Justo"):
                 for f in faltando:
                     st.write(f"- ❌ {f}")
             else:
-                usar_pe = pe_avg > 0 and net_income and net_income > 0
-
+                usar_pe = pe_avg is not None and net_income > 0
                 val_pe = pe_avg * net_income if usar_pe else None
-                val_ps = ps_avg * revenue if ps_avg and revenue else None
-                val_pb = pb_avg * equity if pb_avg and equity else None
+                val_ps = ps_avg * revenue if ps_avg else None
+                val_pb = pb_avg * equity if pb_avg else None
 
                 valores = [v for v in [val_pe, val_ps, val_pb] if v is not None]
                 valor_justo_total = np.mean(valores) if valores else None
                 valor_justo_por_acao = valor_justo_total / shares if shares and valor_justo_total else None
 
                 st.subheader("📈 Resultado:")
-                if valor_justo_por_acao:
-                    st.success(f"Valor justo estimado por ação: **${valor_justo_por_acao:.2f}**")
-                else:
-                    st.error("Não foi possível calcular o valor justo por ação.")
+                st.success(f"Valor justo estimado por ação: **${valor_justo_por_acao:.2f}**")
 
                 dados = {
                     "Empresa-Alvo": ticker_target,
                     "Valor Justo por Ação": valor_justo_por_acao,
-                    "P/E Médio": pe_avg if usar_pe else "N/A",
+                    "P/E Médio": pe_avg,
                     "P/S Médio": ps_avg,
                     "P/B Médio": pb_avg
                 }
                 df_resultado = pd.DataFrame([dados])
                 csv = df_resultado.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="📥 Baixar relatório CSV",
+                    label="📅 Baixar relatório CSV",
                     data=csv,
                     file_name="resultado_valor_justo.csv",
                     mime="text/csv"
                 )
 
-                # Gráfico de comparação
                 df_comparacao = pd.DataFrame({
                     "Comparáveis": comparables,
                     "P/E": pe_list,
@@ -199,5 +206,6 @@ if st.button("🧮 Calcular Valor Justo"):
 
         except Exception as e:
             st.error(f"Erro ao obter dados financeiros: {e}")
+
 
 
