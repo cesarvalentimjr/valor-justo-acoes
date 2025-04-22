@@ -12,7 +12,7 @@ st.set_page_config(page_title="Calculadora de Preço Justo", layout="centered")
 col_logo, col_titulo = st.columns([1, 5])
 
 with col_logo:
-    st.image("logopj.png", width=150)  # ajuste o tamanho aqui se quiser maior
+    st.image("logopj.png", width=150)
 
 with col_titulo:
     st.markdown("""
@@ -25,12 +25,8 @@ with col_titulo:
 # === ESTILIZAÇÃO PERSONALIZADA ===
 st.markdown("""
     <style>
-        .main {
-            background-color: #f5f7fa;
-        }
-        h1, h2, h3 {
-            color: #003366;
-        }
+        .main { background-color: #f5f7fa; }
+        h1, h2, h3 { color: #003366; }
         .stButton>button {
             background-color: #004080;
             color: white;
@@ -47,16 +43,10 @@ st.markdown("""
             font-weight: 600;
             color: #003366;
         }
-        .stMarkdown {
-            font-size: 1.1rem;
-        }
-        .stSuccess {
-            background-color: #dff0d8;
-        }
+        .stMarkdown { font-size: 1.1rem; }
+        .stSuccess { background-color: #dff0d8; }
     </style>
 """, unsafe_allow_html=True)
-
-
 
 # === FUNÇÃO DE BUSCA DE TICKERS ===
 def buscar_tickers(nome_empresa):
@@ -124,11 +114,11 @@ if st.button("🧮 Calcular Valor Justo"):
                 ps_list.append(info.get("priceToSalesTrailing12Months"))
                 pb_list.append(info.get("priceToBook"))
 
-            pe_avg = np.nanmean([v for v in pe_list if v])
+            pe_avg = np.nanmean([v for v in pe_list if v and v > 0])
             ps_avg = np.nanmean([v for v in ps_list if v])
             pb_avg = np.nanmean([v for v in pb_list if v])
 
-            st.markdown(f"**📌 P/E médio:** `{pe_avg:.2f}`")
+            st.markdown(f"**📌 P/E médio (apenas positivos):** `{pe_avg:.2f}`")
             st.markdown(f"**📌 P/S médio:** `{ps_avg:.2f}`")
             st.markdown(f"**📌 P/B médio:** `{pb_avg:.2f}`")
 
@@ -165,22 +155,26 @@ if st.button("🧮 Calcular Valor Justo"):
                 for f in faltando:
                     st.write(f"- ❌ {f}")
             else:
-                val_pe = pe_avg * net_income if pe_avg else None
-                val_ps = ps_avg * revenue if ps_avg else None
-                val_pb = pb_avg * equity if pb_avg else None
+                usar_pe = pe_avg > 0 and net_income and net_income > 0
+
+                val_pe = pe_avg * net_income if usar_pe else None
+                val_ps = ps_avg * revenue if ps_avg and revenue else None
+                val_pb = pb_avg * equity if pb_avg and equity else None
 
                 valores = [v for v in [val_pe, val_ps, val_pb] if v is not None]
                 valor_justo_total = np.mean(valores) if valores else None
                 valor_justo_por_acao = valor_justo_total / shares if shares and valor_justo_total else None
 
                 st.subheader("📈 Resultado:")
-                st.success(f"Valor justo estimado por ação: **${valor_justo_por_acao:.2f}**")
+                if valor_justo_por_acao:
+                    st.success(f"Valor justo estimado por ação: **${valor_justo_por_acao:.2f}**")
+                else:
+                    st.error("Não foi possível calcular o valor justo por ação.")
 
-                # Exportar resultado
                 dados = {
                     "Empresa-Alvo": ticker_target,
                     "Valor Justo por Ação": valor_justo_por_acao,
-                    "P/E Médio": pe_avg,
+                    "P/E Médio": pe_avg if usar_pe else "N/A",
                     "P/S Médio": ps_avg,
                     "P/B Médio": pb_avg
                 }
@@ -205,4 +199,5 @@ if st.button("🧮 Calcular Valor Justo"):
 
         except Exception as e:
             st.error(f"Erro ao obter dados financeiros: {e}")
+
 
