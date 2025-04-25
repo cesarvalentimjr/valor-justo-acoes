@@ -4,3 +4,4 @@ yahooquery
 pandas
 numpy
 matplotlib
+plotly
