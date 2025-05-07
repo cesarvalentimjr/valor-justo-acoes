@@ -1,6 +1,6 @@
 streamlit
 yfinance
-yahooquery
+yahooquery==2.3.7
 pandas
 numpy
 matplotlib
