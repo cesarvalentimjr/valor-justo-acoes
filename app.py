@@ -59,16 +59,25 @@ st.markdown("""
 # === FUNÇÃO DE BUSCA DE TICKERS ===
 def buscar_tickers(nome_empresa):
     try:
+        # Realizar a busca usando o método `search` do yahooquery
         resultados = search(nome_empresa)
         opcoes = []
+        
+        # Verificar se o resultado contém o campo 'quotes'
         if 'quotes' in resultados:
             for r in resultados['quotes']:
                 if 'shortname' in r and 'symbol' in r:
                     nome = r['shortname']
                     ticker = r['symbol']
                     opcoes.append(f"{nome} ({ticker})")
+        else:
+            st.warning("Nenhum resultado encontrado para a busca.")
+
+        # Retornar as opções encontradas
         return opcoes
-    except Exception:
+    except Exception as e:
+        # Logar erros para entender possíveis falhas
+        st.error(f"Erro ao buscar tickers: {e}")
         return []
 
 # === LAYOUT COM COLUNAS ===
